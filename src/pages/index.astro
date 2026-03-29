@@ -1,0 +1,22 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import Experience from "../components/Experience.astro";
+import Projects from "../components/Projects.astro";
+import Contact from "../components/Contact.astro";
+---
+
+<Layout>
+  <Nav />
+  <main>
+    <Hero />
+    <Experience />
+    <Projects />
+    <Contact />
+  </main>
+  <script src="../scripts/scroll-reveal.ts"></script>
+  <script src="../scripts/copy-email.ts"></script>
+  <script src="../scripts/nav.ts"></script>
+  <script src="../scripts/aurora.ts"></script>
+</Layout>

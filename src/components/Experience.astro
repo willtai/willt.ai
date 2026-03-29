@@ -1,0 +1,147 @@
+---
+import { EXPERIENCE, EDUCATION } from "../data/site";
+---
+
+<section id="experience" class="py-28 bg-white">
+  <div class="relative z-10 max-w-2xl mx-auto px-6">
+    <h2 class="reveal text-sm font-medium uppercase tracking-widest text-[var(--color-muted)] mb-12">
+      Experience
+    </h2>
+    <div class="stagger relative ml-4">
+      {/* Vertical timeline line */}
+      <div class="absolute left-0 top-2 bottom-2 w-px bg-[var(--color-border)]"></div>
+
+      {EXPERIENCE.map((exp, i) => {
+        const isFirst = i === 0;
+        const hasUrl = exp.url !== "";
+
+        const dotClasses = isFirst
+          ? "w-2.5 h-2.5 rounded-full bg-[var(--color-accent)] ring-2 ring-white"
+          : "w-2.5 h-2.5 rounded-full bg-[var(--color-border)] ring-2 ring-white";
+
+        const cardClasses = isFirst
+          ? "reveal card-hover relative block pl-6 p-4 rounded-xl group bg-[#ACE1AF]/[0.12] border border-[#ACE1AF]/25"
+          : "reveal card-hover relative block pl-6 p-4 rounded-xl group";
+
+        const innerContent = (
+          <>
+            {/* Timeline dot */}
+            <div class="absolute -left-[calc(1rem+5px)] top-5 z-10">
+              <div class={dotClasses} />
+            </div>
+
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                <img
+                  src={exp.logo}
+                  alt={exp.company}
+                  width="24"
+                  height="24"
+                  class="w-6 h-6 object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[var(--color-fg)] font-medium">
+                  {exp.role}
+                  {isFirst && <span class="ml-2 text-xs font-medium text-[var(--color-accent)] bg-[var(--color-accent)]/[0.08] px-2 py-0.5 rounded-full">current</span>}
+                </p>
+                <p class="text-sm text-[var(--color-muted)]">{exp.company}</p>
+              </div>
+              {hasUrl && (
+                <svg
+                  class="w-4 h-4 text-[var(--color-muted)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+                </svg>
+              )}
+            </div>
+          </>
+        );
+
+        return hasUrl ? (
+          <a
+            href={exp.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class={cardClasses}
+          >
+            {innerContent}
+          </a>
+        ) : (
+          <div class={isFirst ? cardClasses : "reveal relative pl-6 p-4 rounded-xl"}>
+            {innerContent}
+          </div>
+        );
+      })}
+    </div>
+
+    <h2 class="reveal text-sm font-medium uppercase tracking-widest text-[var(--color-muted)] mb-12 mt-20">
+      Education
+    </h2>
+    <div class="stagger relative ml-4">
+      {/* Vertical timeline line */}
+      <div class="absolute left-0 top-2 bottom-2 w-px bg-[var(--color-border)]"></div>
+
+      {EDUCATION.map((edu) => {
+        const hasUrl = edu.url !== "";
+        const content = (
+          <>
+            {/* Timeline dot */}
+            <div class="absolute -left-[calc(1rem+5px)] top-5 z-10">
+              <div class="w-2.5 h-2.5 rounded-full bg-[var(--color-border)] ring-2 ring-white" />
+            </div>
+
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                <img
+                  src={edu.logo}
+                  alt={edu.institution}
+                  width="24"
+                  height="24"
+                  class="w-6 h-6 object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[var(--color-fg)] font-medium">{edu.degree}</p>
+                <p class="text-sm text-[var(--color-muted)]">{edu.institution}</p>
+              </div>
+              {hasUrl && (
+                <svg
+                  class="w-4 h-4 text-[var(--color-muted)] opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+                </svg>
+              )}
+            </div>
+          </>
+        );
+
+        return hasUrl ? (
+          <a
+            href={edu.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="reveal card-hover relative block pl-6 p-4 rounded-xl group"
+          >
+            {content}
+          </a>
+        ) : (
+          <div class="reveal relative pl-6 p-4 rounded-xl">
+            {content}
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+</section>

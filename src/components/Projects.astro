@@ -1,0 +1,32 @@
+---
+import { PROJECTS } from "../data/site";
+---
+
+<section id="projects" class="relative py-28 bg-[var(--color-dark)] gradient-mesh">
+  <div class="relative z-10 max-w-2xl mx-auto px-6">
+    <h2 class="reveal text-sm font-medium uppercase tracking-widest text-white/40 mb-12">
+      Projects
+    </h2>
+    <div class="stagger space-y-4">
+      {PROJECTS.map((project) => (
+        <div class="reveal glass-card glow-hover p-6 rounded-2xl">
+          <h3 class="text-base font-semibold text-white">{project.title}</h3>
+          <p class="mt-2 text-white/50 leading-relaxed">{project.description}</p>
+          <div class="mt-4 flex items-center gap-4">
+            {project.links.map((link) => (
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm font-medium text-[#34d399] hover:text-white link-underline transition-colors duration-200"
+              >
+                {link.label} &rarr;
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+</section>

@@ -1,0 +1,404 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-bg: #ffffff;
+  --color-fg: #0a2540;
+  --color-muted: #425466;
+  --color-border: #e6ebf1;
+  --color-surface: #ffffff;
+  --color-accent: #2d5a3d;
+  --color-dark: #0c1f17;
+  --color-dark-lighter: #163026;
+  --color-glow: #34d399;
+  --color-teal: #0d9488;
+  --color-celadon: #ACE1AF;
+}
+
+/* ──────────────────────────────────────────────
+   Base
+   ────────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  line-height: 1.6;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}
+
+/* ──────────────────────────────────────────────
+   Northern Lights — Dark sections (hero / footer)
+   Multi-layer aurora with independent animations
+   ────────────────────────────────────────────── */
+
+.gradient-mesh {
+  position: relative;
+  overflow: hidden;
+}
+
+/* CSS fallback — hidden when JS aurora takes over */
+.gradient-mesh::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(ellipse 130% 70% at 15% 25%, rgba(80, 200, 120, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 90% at 75% 15%, rgba(26, 58, 42, 0.5) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 100% at 40% 80%, rgba(45, 212, 191, 0.3) 0%, transparent 50%);
+  animation: aurora-1 12s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-mesh::after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  background:
+    radial-gradient(ellipse 110% 55% at 70% 35%, rgba(172, 225, 175, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 80% at 20% 65%, rgba(135, 174, 115, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 50% at 50% 10%, rgba(80, 200, 120, 0.3) 0%, transparent 50%);
+  animation: aurora-2 16s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes aurora-1 {
+  0% {
+    transform: translateY(0) scaleY(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  25% {
+    transform: translateY(-5%) scaleY(1.1) rotate(0.5deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(3%) scaleY(0.95) rotate(-0.3deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-2%) scaleY(1.05) rotate(0.2deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(4%) scaleY(1.08) rotate(-0.5deg);
+    opacity: 0.75;
+  }
+}
+
+@keyframes aurora-2 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  33% {
+    transform: translateX(3%) translateY(-3%) scale(1.06);
+    opacity: 0.9;
+  }
+  66% {
+    transform: translateX(-2%) translateY(2%) scale(0.97);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(1%) translateY(-1%) scale(1.04);
+    opacity: 1;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Northern Lights Light — white/light sections
+   Softer aurora with doubled visibility
+   ────────────────────────────────────────────── */
+
+.gradient-mesh-light {
+  position: relative;
+  overflow: hidden;
+}
+
+.gradient-mesh-light::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 100% 60% at 15% 30%, rgba(80, 200, 120, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 20%, rgba(172, 225, 175, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 80% at 45% 80%, rgba(45, 90, 61, 0.12) 0%, transparent 50%);
+  animation: aurora-light 20s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-mesh-light::after {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  background:
+    radial-gradient(ellipse 80% 50% at 60% 40%, rgba(45, 212, 191, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 50% at 25% 60%, rgba(135, 174, 115, 0.08) 0%, transparent 45%);
+  animation: aurora-light-2 14s ease-in-out infinite alternate-reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes aurora-light {
+  0% { transform: translateY(0) scale(1); opacity: 0.7; }
+  50% { transform: translateY(-2%) scale(1.03); opacity: 1; }
+  100% { transform: translateY(1%) scale(1.01); opacity: 0.85; }
+}
+
+@keyframes aurora-light-2 {
+  0% { transform: translateX(0) scale(1); opacity: 0.6; }
+  50% { transform: translateX(2%) scale(1.04); opacity: 1; }
+  100% { transform: translateX(-1%) scale(1.02); opacity: 0.8; }
+}
+
+/* ──────────────────────────────────────────────
+   Card — Light sections
+   White bg, shadow-only depth, lift on hover
+   ────────────────────────────────────────────── */
+
+.card-light {
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.card-light:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Legacy alias — keep for existing markup */
+.card-hover {
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* ──────────────────────────────────────────────
+   Glass Card — Dark/mesh sections
+   Frosted glass with border glow on hover
+   ────────────────────────────────────────────── */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.15),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.28s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.22),
+    0 0 48px rgba(52, 211, 153, 0.08),
+    0 0 24px rgba(13, 148, 136, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ──────────────────────────────────────────────
+   Hover Glow — Radiant border glow behind element
+   ────────────────────────────────────────────── */
+
+.glow-hover {
+  position: relative;
+}
+
+.glow-hover::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(52, 211, 153, 0.3),
+    rgba(13, 148, 136, 0.2),
+    rgba(172, 225, 175, 0.15)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  filter: blur(8px);
+}
+
+.glow-hover:hover::after {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────────────
+   Scroll Reveal
+   ────────────────────────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for child elements */
+.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+.stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
+
+/* ──────────────────────────────────────────────
+   Hero Entrance
+   ────────────────────────────────────────────── */
+
+.hero-enter {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: hero-fade-in 0.8s ease forwards;
+}
+
+.hero-enter-delay-1 { animation-delay: 0.15s; }
+.hero-enter-delay-2 { animation-delay: 0.3s; }
+.hero-enter-delay-3 { animation-delay: 0.45s; }
+
+@keyframes hero-fade-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Blinking Cursor
+   ────────────────────────────────────────────── */
+
+.blink-cursor {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ──────────────────────────────────────────────
+   Copy Toast
+   ────────────────────────────────────────────── */
+
+.copy-toast {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.copy-toast.show {
+  opacity: 1;
+}
+
+/* ──────────────────────────────────────────────
+   Link Underline Animation
+   ────────────────────────────────────────────── */
+
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: currentColor;
+  transition: width 0.28s ease;
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ──────────────────────────────────────────────
+   Smooth Fluid Transitions — Global
+   Stripe applies transitions almost everywhere
+   ────────────────────────────────────────────── */
+
+a,
+button,
+input,
+textarea,
+[role="button"] {
+  transition-property: color, background-color, box-shadow, transform, opacity;
+  transition-duration: 0.28s;
+  transition-timing-function: ease;
+}
+
+/* ──────────────────────────────────────────────
+   Accent Button Glow
+   For primary CTAs — glowing emerald shadow
+   ────────────────────────────────────────────── */
+
+.btn-glow {
+  position: relative;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2);
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.btn-glow:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 20px rgba(52, 211, 153, 0.35),
+    0 0 40px rgba(52, 211, 153, 0.1);
+}
+
+/* ──────────────────────────────────────────────
+   Text Gradient — For accent headings
+   ────────────────────────────────────────────── */
+
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-glow) 0%,
+    var(--color-teal) 50%,
+    var(--color-accent) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-warm {
+  background: linear-gradient(
+    135deg,
+    var(--color-glow) 0%,
+    var(--color-teal) 40%,
+    var(--color-celadon) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

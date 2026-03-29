@@ -1,0 +1,47 @@
+---
+import { SITE, SOCIALS } from "../data/site";
+
+const year = new Date().getFullYear();
+---
+
+<section id="contact" class="py-28 bg-white">
+  <div class="max-w-2xl mx-auto px-6">
+    <h2 class="reveal text-sm font-medium uppercase tracking-widest text-[var(--color-muted)] mb-12">
+      Get in touch
+    </h2>
+    <div class="reveal">
+      <button
+        id="copy-email"
+        type="button"
+        class="group card-light inline-flex items-center gap-3 px-6 py-3 rounded-2xl cursor-pointer"
+        data-user="wtaisen"
+        data-domain="gmail.com"
+      >
+        <svg class="w-5 h-5 text-[var(--color-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        </svg>
+        <span class="font-medium text-[var(--color-fg)]">Get in touch</span>
+        <span class="text-xs text-[var(--color-muted)] group-hover:text-[var(--color-accent)] transition-colors">click to copy email</span>
+        <span id="copy-toast" class="copy-toast text-xs text-[var(--color-accent)]">copied!</span>
+      </button>
+    </div>
+    <div class="reveal mt-8 flex items-center gap-3">
+      {SOCIALS.map((social) => (
+        <a
+          href={social.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-4 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-accent)] rounded-full bg-[var(--color-fg)]/[0.04] hover:bg-[var(--color-fg)]/[0.08] transition-all duration-200"
+        >
+          {social.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<footer class="py-8 bg-[var(--color-dark)]">
+  <div class="max-w-2xl mx-auto px-6">
+    <p class="text-xs text-white/40">&copy; {year} {SITE.name}</p>
+  </div>
+</footer>

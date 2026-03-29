@@ -1,0 +1,40 @@
+---
+import { SITE, SOCIALS } from "../data/site";
+---
+
+<section id="top" class="relative min-h-[90vh] flex items-center bg-[var(--color-dark)] gradient-mesh">
+  <div class="relative z-10 w-full max-w-2xl mx-auto px-6 py-40">
+    <div class="flex flex-col sm:flex-row items-start gap-8">
+      <img
+        src={SITE.photo}
+        alt={SITE.name}
+        width="96"
+        height="96"
+        class="hero-enter w-24 h-24 rounded-full object-cover shadow-lg shadow-black/30 grayscale"
+        loading="eager"
+      />
+      <div class="flex-1">
+        <h1 class="hero-enter hero-enter-delay-1 text-4xl sm:text-5xl font-bold tracking-tight text-white">
+          {SITE.name}<span class="blink-cursor text-[var(--color-glow)]">_</span>
+        </h1>
+        <p class="hero-enter hero-enter-delay-2 mt-5 text-base text-white/60 leading-relaxed max-w-md">
+          {SITE.tagline}
+        </p>
+        <div class="hero-enter hero-enter-delay-3 mt-8 flex items-center gap-3">
+          {SOCIALS.map((social) => (
+            <a
+              href={social.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={social.label}
+              class="px-4 py-1.5 text-sm font-medium text-white/60 hover:text-white rounded-full bg-white/[0.06] hover:bg-white/[0.12] backdrop-blur-sm shadow-sm shadow-black/10 transition-all duration-200"
+            >
+              {social.label}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>

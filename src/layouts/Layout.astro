@@ -1,0 +1,103 @@
+---
+import "../styles/global.css";
+import { SITE, SOCIALS, EXPERIENCE, EDUCATION } from "../data/site";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = SITE.title, description = SITE.description } = Astro.props;
+const canonicalUrl = SITE.url;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: SITE.name,
+  url: SITE.url,
+  email: `mailto:${SITE.email}`,
+  jobTitle: "Machine Learning Engineer",
+  description: "Cambridge-educated machine learning engineer building large-scale ML systems at Meta. Proven track record shipping ML infrastructure serving hundreds of millions of users. Combines deep technical expertise in Python, Rust, and modern ML frameworks with a strong product sense.",
+  worksFor: {
+    "@type": "Organization",
+    name: "Meta",
+    url: "https://meta.com",
+  },
+  alumniOf: {
+    "@type": "EducationalOrganization",
+    name: "University of Cambridge",
+    url: "https://www.cam.ac.uk",
+  },
+  knowsAbout: [
+    "machine learning",
+    "deep learning",
+    "natural language processing",
+    "large language models",
+    "MLOps",
+    "data science",
+    "software engineering",
+    "ML systems at scale",
+    "content integrity",
+    "anomaly detection",
+    "Bayesian inference",
+    "reinforcement learning"
+  ],
+  hasOccupation: {
+    "@type": "Occupation",
+    name: "Machine Learning Engineer",
+    skills: "Python, Rust, PyTorch, TensorFlow, Kubernetes, AWS, GCP, Spark, Airflow",
+    occupationalCategory: "15-2051.00",
+    description: "Designs and deploys production ML systems at scale, specialising in NLP, content integrity, and LLM-based detection systems"
+  },
+  sameAs: SOCIALS.map((s) => s.url),
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={SITE.name} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Extended meta for discoverability -->
+    <meta name="keywords" content="Will Tai, machine learning engineer, Meta, Cambridge, ML systems, NLP, deep learning, LLM, Python, Rust, data science, WhatsApp integrity" />
+    <meta name="robots" content="index, follow" />
+    <meta name="subject" content="Machine Learning Engineer" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={SITE.name} />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:site" content="@willtai_" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body class="min-h-screen">
+    <slot />
+  </body>
+</html>
