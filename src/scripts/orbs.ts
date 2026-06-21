@@ -17,27 +17,27 @@ const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ─── Flock layout ───────────────────────────────────────────────────────────
 const N_FLOCKS = 4;   // independent sub-flocks
-const COUNT    = 120; // birds per flock (480 total)
+const COUNT    = 12;  // birds per flock (48 total) — sparse, star-like spacing
 
 // ─── Boid tuning (calm, dreamlike) ──────────────────────────────────────────
 const V_MAX    = 55;   // px/sec — slow float
 const V_MIN    = 12;   // px/sec
-const PERC_R   = 100;  // perception radius px
-const SEP_R    = 28;   // minimum comfortable distance px
+const PERC_R   = 320;  // wide perception so birds can still see each other when spread out
+const SEP_R    = 200;  // ~7× original — enforces star-like gaps between points
 const MAX_SEP  = 260;  // separation acceleration cap px/sec²
 const MAX_ALI  = 80;   // alignment acceleration cap px/sec²
-const MAX_COH  = 30;   // cohesion toward own flock's centroid px/sec²
+const MAX_COH  = 25;   // cohesion toward own flock's centroid px/sec²
 const MAX_WALL = 180;  // boundary turn force px/sec²
 const MARGIN   = 130;  // px from edge where boundary force starts
 // Wander: each bird has a slowly-drifting personal heading
-const WANDER_R    = 18;   // radius of wander circle (strength)
+const WANDER_R    = 22;   // radius of wander circle (strength)
 const WANDER_RATE = 0.4;  // rad/sec max wander angle change
 
 // ─── Visual ─────────────────────────────────────────────────────────────────
-const SPRITE_R = 20;   // glow sprite radius px
-const GLOW_A   = 0.06; // per-bird alpha (additive stacking brightens dense patches)
-const DOT_R    = 1.8;  // core dot radius px
-const DOT_A    = 0.65; // core dot alpha
+const SPRITE_R = 32;   // larger glow — birds are isolated so each needs to read clearly
+const GLOW_A   = 0.22; // brighter individually (no longer stacking with nearby birds)
+const DOT_R    = 2.8;  // core dot radius px
+const DOT_A    = 0.88; // core dot alpha
 
 // One glow colour per sub-flock (all from site palette, subtly varied)
 // --color-glow #34d399, --color-teal #0d9488, --color-celadon #ACE1AF, emerald #50C878
