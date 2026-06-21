@@ -28,8 +28,9 @@ const SEP_R  = 45;  // separation radius — birds avoid getting this close
 // Without it, clusters are temporary — streams form, meet, and diverge naturally.
 const MAX_SEP  = 280; // separation force cap px/sec²
 const MAX_ALI  = 110; // alignment force cap px/sec² — strong: local streams form fast
-const MAX_WALL = 200; // boundary avoidance force cap px/sec²
-const MARGIN   = 140; // px from edge where wall force begins
+const MAX_WALL   = 200; // boundary avoidance force cap px/sec² (left/right only)
+const MARGIN     = 140; // px from left/right edge where wall force begins
+const DRIFT_DOWN =  20; // px/sec² constant downward bias — net flow top→bottom
 // Wander: each bird has a personal heading that slowly rotates.
 // This is what causes streams to split — even birds flying together gradually
 // diverge as their wander angles drift apart.
@@ -109,15 +110,13 @@ function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
     const wx = Math.cos(b.wanderAngle) * WANDER_SPEED;
     const wy = Math.sin(b.wanderAngle) * WANDER_SPEED;
 
-    // Boundary avoidance — soft force ramping up near edges
-    let bx = 0, by = 0;
+    // Left/right boundary avoidance only — top/bottom are toroidal (see below)
+    let bx = 0;
     if (b.x < MARGIN)     bx += MAX_WALL * (1 - b.x / MARGIN);
     if (b.x > w - MARGIN) bx -= MAX_WALL * (1 - (w - b.x) / MARGIN);
-    if (b.y < MARGIN)     by += MAX_WALL * (1 - b.y / MARGIN);
-    if (b.y > h - MARGIN) by -= MAX_WALL * (1 - (h - b.y) / MARGIN);
 
     b.vx += (fsx + fax + wx + bx) * dt;
-    b.vy += (fsy + fay + wy + by) * dt;
+    b.vy += (fsy + fay + wy + DRIFT_DOWN) * dt; // constant downward pull
 
     const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || V_MIN;
     if (spd > V_MAX)      { b.vx *= V_MAX / spd; b.vy *= V_MAX / spd; }
@@ -126,11 +125,15 @@ function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
 
-    // Hard clamp — fallback behind the soft boundary force
+    // Toroidal Y wrap — birds exiting the bottom reappear at the top.
+    // Buffer of 60px (> largest sprite radius) prevents visible popping.
+    const buf = 60;
+    if (b.y > h + buf) b.y -= h + buf * 2;
+    if (b.y < -buf)    b.y += h + buf * 2;
+
+    // Hard clamp X — left/right are hard walls, not toroidal
     if (b.x < 0) { b.x = 0; b.vx =  Math.abs(b.vx); }
     if (b.x > w) { b.x = w; b.vx = -Math.abs(b.vx); }
-    if (b.y < 0) { b.y = 0; b.vy =  Math.abs(b.vy); }
-    if (b.y > h) { b.y = h; b.vy = -Math.abs(b.vy); }
   }
 }
 
