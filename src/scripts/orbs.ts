@@ -1,100 +1,120 @@
 /**
- * Ethereal floating orbs — Reynolds boids flocking on canvas.
- * Injects an absolutely-positioned canvas into every .gradient-mesh section.
+ * Murmuration — 500 glowing orbs in Reynolds boids formation.
  *
- * Palette drawn from site CSS tokens:
- *   --color-glow    #34d399 → [52, 211, 153]
- *   --color-teal    #0d9488 → [13, 148, 136]
- *   --color-celadon #ACE1AF → [172, 225, 175]
+ * Performance approach:
+ *   - Glow: pre-rendered sprite canvas stamped via drawImage (no per-frame
+ *     radial gradient allocation, no GC pressure)
+ *   - Core dots: single batched beginPath/fill per frame
+ *   - Additive blending: overlapping glows stack naturally, flock core glows bright
+ *
+ * Palette: --color-glow #34d399 / --color-teal #0d9488 / --color-celadon #ACE1AF
  */
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-type RGB = [number, number, number];
+// ─── Boid tuning ────────────────────────────────────────────────────────────
+const COUNT    = 500;
+const V_MAX    = 130;  // px/sec — active, energetic flock
+const V_MIN    = 45;   // px/sec — always in motion
+const PERC_R   = 90;   // perception radius px
+const SEP_R    = 20;   // separation radius px
+const MAX_SEP  = 320;  // max separation acceleration px/sec²
+const MAX_ALI  = 210;  // max alignment acceleration px/sec²
+const MAX_COH  = 70;   // max cohesion acceleration px/sec²
+const MAX_WALL = 500;  // boundary turn force px/sec²
+const MARGIN   = 110;  // px from edge where boundary force kicks in
+const NOISE    = 15;   // random jitter px/sec² (keeps flock organic)
 
-const PALETTE: RGB[] = [
-  [52, 211, 153],  // glow   (weighted 2×)
-  [52, 211, 153],  // glow
-  [13, 148, 136],  // teal
-  [172, 225, 175], // celadon
-  [80, 200, 120],  // emerald mid
-];
-
-// Boid parameters
-const COUNT  = 32;
-const V_MAX  = 28;    // px/sec
-const V_MIN  = 5;     // px/sec
-const PERC   = 160;   // perception radius px
-const SEP_R  = 55;    // separation radius px
-const W_S    = 120;   // separation weight
-const W_A    = 18;    // alignment weight
-const W_C    = 0.055; // cohesion weight (raw px offset → tiny scale)
-const BIAS   = 1.8;   // rightward drift bias, px/sec²
-const BOB_F  = 0.00075; // bobbing frequency, rad/ms
+// ─── Visual tuning ──────────────────────────────────────────────────────────
+const SPRITE_R = 22;   // glow sprite radius px
+const GLOW_A   = 0.07; // per-bird glow alpha (additive stacking = bright flock)
+const DOT_R    = 2.0;  // core dot radius px
+const DOT_A    = 0.72; // core dot alpha
 
 interface Boid {
-  x: number; y: number;
-  vx: number; vy: number;
-  r: number;
-  alpha: number;
-  color: RGB;
-  bobPhase: number;
-  bobAmp: number;
-  layer: 0 | 1 | 2;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
 }
 
-function mkBoid(w: number, h: number, rx = true, ry = true): Boid {
-  const layer = (Math.random() < 0.25 ? 0 : Math.random() < 0.5 ? 1 : 2) as 0 | 1 | 2;
+function mkBoid(w: number, h: number): Boid {
   const ang = Math.random() * Math.PI * 2;
-  const spd = V_MIN + Math.random() * (V_MAX - V_MIN);
+  const spd = V_MIN + Math.random() * (V_MAX - V_MIN) * 0.5;
+  // Spawn in middle 60% of screen so birds are immediately visible as a flock
   return {
-    x:        rx ? Math.random() * w : -200,
-    y:        ry ? Math.random() * h : Math.random() * h,
-    vx:       Math.cos(ang) * spd,
-    vy:       Math.sin(ang) * spd,
-    r:        layer === 0 ? 80 + Math.random() * 110 : layer === 1 ? 38 + Math.random() * 52 : 15 + Math.random() * 26,
-    alpha:    layer === 0 ? 0.05 + Math.random() * 0.08 : layer === 1 ? 0.11 + Math.random() * 0.13 : 0.20 + Math.random() * 0.17,
-    color:    PALETTE[Math.floor(Math.random() * PALETTE.length)],
-    bobPhase: Math.random() * Math.PI * 2,
-    bobAmp:   2 + Math.random() * 5,
-    layer,
+    x:  w * 0.2 + Math.random() * w * 0.6,
+    y:  h * 0.2 + Math.random() * h * 0.6,
+    vx: Math.cos(ang) * spd,
+    vy: Math.sin(ang) * spd,
   };
+}
+
+// Clamp vector magnitude to [0, max]; returns [cx, cy]
+function clampVec(x: number, y: number, max: number): [number, number] {
+  const m = Math.sqrt(x * x + y * y);
+  return m > max ? [x / m * max, y / m * max] : [x, y];
 }
 
 function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
   for (const b of boids) {
-    let sx = 0, sy = 0, ax = 0, ay = 0, cx = 0, cy = 0, n = 0;
+    // Accumulate steering vectors
+    let sx = 0, sy = 0;  // separation
+    let ax = 0, ay = 0;  // alignment (avg neighbor velocity)
+    let cx = 0, cy = 0;  // cohesion (avg neighbor position)
+    let n = 0;
 
     for (const o of boids) {
       if (o === b) continue;
       const dx = o.x - b.x;
       const dy = o.y - b.y;
       const d2 = dx * dx + dy * dy;
-      if (d2 >= PERC * PERC) continue;
+      if (d2 >= PERC_R * PERC_R) continue;
 
       ax += o.vx; ay += o.vy;
       cx += o.x;  cy += o.y;
       n++;
 
       if (d2 < SEP_R * SEP_R && d2 > 0) {
-        sx -= dx / d2;
-        sy -= dy / d2;
+        // Steer away: direction away × inverse-linear falloff
+        const d = Math.sqrt(d2);
+        const strength = 1 - d / SEP_R;
+        sx -= (dx / d) * strength;
+        sy -= (dy / d) * strength;
       }
     }
 
+    // Separation: already a direction vector, clamp magnitude
+    let [fsx, fsy] = clampVec(sx, sy, MAX_SEP);
+
+    let fax = 0, fay = 0, fcx = 0, fcy = 0;
     if (n > 0) {
       // Alignment: steer toward average neighbor velocity
-      ax = ax / n - b.vx;
-      ay = ay / n - b.vy;
+      const adx = ax / n - b.vx;
+      const ady = ay / n - b.vy;
+      [fax, fay] = clampVec(adx, ady, MAX_ALI);
+
       // Cohesion: steer toward centroid of neighbors
-      cx = cx / n - b.x;
-      cy = cy / n - b.y;
+      const cdx = cx / n - b.x;
+      const cdy = cy / n - b.y;
+      [fcx, fcy] = clampVec(cdx, cdy, MAX_COH);
     }
 
-    b.vx += (W_S * sx + W_A * ax + W_C * cx + BIAS) * dt;
-    b.vy += (W_S * sy + W_A * ay + W_C * cy) * dt;
+    // Soft boundary avoidance: force ramps up as bird approaches wall
+    let bx = 0, by = 0;
+    if (b.x < MARGIN)       bx += MAX_WALL * (1 - b.x / MARGIN);
+    if (b.x > w - MARGIN)   bx -= MAX_WALL * (1 - (w - b.x) / MARGIN);
+    if (b.y < MARGIN)       by += MAX_WALL * (1 - b.y / MARGIN);
+    if (b.y > h - MARGIN)   by -= MAX_WALL * (1 - (h - b.y) / MARGIN);
 
-    // Clamp speed to [V_MIN, V_MAX]
+    // Random organic jitter
+    const nx = (Math.random() - 0.5) * 2 * NOISE;
+    const ny = (Math.random() - 0.5) * 2 * NOISE;
+
+    b.vx += (fsx + fax + fcx + bx + nx) * dt;
+    b.vy += (fsy + fay + fcy + by + ny) * dt;
+
+    // Clamp to [V_MIN, V_MAX]
     const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || V_MIN;
     if (spd > V_MAX)      { b.vx *= V_MAX / spd; b.vy *= V_MAX / spd; }
     else if (spd < V_MIN) { b.vx *= V_MIN / spd; b.vy *= V_MIN / spd; }
@@ -102,60 +122,62 @@ function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
 
-    // Wrap edges — respawn on opposite side so motion is continuous
-    const m = b.r * 2.5;
-    if (b.x > w + m) { b.x = -m;     b.y = Math.random() * h; }
-    if (b.x < -m)    { b.x = w + m;  b.y = Math.random() * h; }
-    if (b.y > h + m) { b.y = -m; }
-    if (b.y < -m)    { b.y = h + m; }
+    // Hard clamp — safety net if boundary force wasn't enough
+    if (b.x < 0)    { b.x = 0;  b.vx = Math.abs(b.vx); }
+    if (b.x > w)    { b.x = w;  b.vx = -Math.abs(b.vx); }
+    if (b.y < 0)    { b.y = 0;  b.vy = Math.abs(b.vy); }
+    if (b.y > h)    { b.y = h;  b.vy = -Math.abs(b.vy); }
   }
 }
 
-function renderBoids(ctx: CanvasRenderingContext2D, boids: Boid[], t: number): void {
-  const sorted = [...boids].sort((a, b) => a.layer - b.layer);
-
-  for (const b of sorted) {
-    const x = b.x;
-    const y = b.y + Math.sin(t * BOB_F + b.bobPhase) * b.bobAmp;
-    const [r, g, bl] = b.color;
-
-    // Outer bloom
-    const bloom = ctx.createRadialGradient(x, y, 0, x, y, b.r * 2.4);
-    bloom.addColorStop(0, `rgba(${r},${g},${bl},${(b.alpha * 0.2).toFixed(3)})`);
-    bloom.addColorStop(1, `rgba(${r},${g},${bl},0)`);
-    ctx.fillStyle = bloom;
-    ctx.beginPath();
-    ctx.arc(x, y, b.r * 2.4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Core orb with bright centre fading to transparent
-    const core = ctx.createRadialGradient(x, y, 0, x, y, b.r);
-    core.addColorStop(0,    `rgba(${r},${g},${bl},${b.alpha.toFixed(3)})`);
-    core.addColorStop(0.42, `rgba(${r},${g},${bl},${(b.alpha * 0.42).toFixed(3)})`);
-    core.addColorStop(1,    `rgba(${r},${g},${bl},0)`);
-    ctx.fillStyle = core;
-    ctx.beginPath();
-    ctx.arc(x, y, b.r, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Abstract bird silhouette — two wing arcs facing direction of travel
-    const ang = Math.atan2(b.vy, b.vx);
-    const s   = Math.max(4, b.r * 0.16);
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(ang);
-    ctx.strokeStyle = `rgba(172,225,175,${(b.alpha * 0.38).toFixed(3)})`;
-    ctx.lineWidth = Math.max(0.4, s * 0.08);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(-s * 0.88, -s * 0.46, -s * 1.75, s * 0.08);
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo( s * 0.88, -s * 0.46,  s * 1.75, s * 0.08);
-    ctx.stroke();
-    ctx.restore();
-  }
+// Pre-render a single glow sprite. Used with drawImage — much faster than
+// creating 500 radial gradients per frame.
+function makeGlowSprite(): HTMLCanvasElement {
+  const size = SPRITE_R * 2;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const cx = c.getContext('2d')!;
+  const g = cx.createRadialGradient(SPRITE_R, SPRITE_R, 0, SPRITE_R, SPRITE_R, SPRITE_R);
+  g.addColorStop(0,    'rgba(52,211,153,1)');   // --color-glow core
+  g.addColorStop(0.3,  'rgba(52,211,153,0.7)');
+  g.addColorStop(0.65, 'rgba(13,148,136,0.25)'); // --color-teal fade
+  g.addColorStop(1,    'rgba(13,148,136,0)');
+  cx.fillStyle = g;
+  cx.beginPath();
+  cx.arc(SPRITE_R, SPRITE_R, SPRITE_R, 0, Math.PI * 2);
+  cx.fill();
+  return c;
 }
+
+function renderBoids(
+  ctx: CanvasRenderingContext2D,
+  boids: Boid[],
+  sprite: HTMLCanvasElement,
+): void {
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Glow halos: stamp pre-rendered sprite for each bird
+  ctx.globalAlpha = GLOW_A;
+  const off = SPRITE_R;
+  for (const b of boids) {
+    ctx.drawImage(sprite, b.x - off, b.y - off);
+  }
+
+  // Core dots: one batched path fill (much faster than 500 arc() + fill() calls)
+  ctx.globalAlpha = DOT_A;
+  ctx.fillStyle = 'rgba(172,225,175,1)'; // --color-celadon: slightly cool to contrast glow
+  ctx.beginPath();
+  for (const b of boids) {
+    ctx.moveTo(b.x + DOT_R, b.y);
+    ctx.arc(b.x, b.y, DOT_R, 0, Math.PI * 2);
+  }
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ─── Bootstrap: one flock per .gradient-mesh section ────────────────────────
 
 document.querySelectorAll<HTMLElement>('.gradient-mesh').forEach((mesh) => {
   const canvas = document.createElement('canvas');
@@ -164,6 +186,8 @@ document.querySelectorAll<HTMLElement>('.gradient-mesh').forEach((mesh) => {
   mesh.prepend(canvas);
 
   const ctx = canvas.getContext('2d')!;
+  const sprite = makeGlowSprite();
+
   let W = 0, H = 0;
   let boids: Boid[] = [];
 
@@ -177,20 +201,20 @@ document.querySelectorAll<HTMLElement>('.gradient-mesh').forEach((mesh) => {
     W = canvas.width  = mesh.clientWidth;
     H = canvas.height = mesh.clientHeight;
     boids = Array.from({ length: COUNT }, () => mkBoid(W, H));
-    renderBoids(ctx, boids, 0);
+    renderBoids(ctx, boids, sprite);
     return;
   }
 
-  let prev  = 0;
+  let prev   = 0;
   let paused = false;
   document.addEventListener('visibilitychange', () => { paused = document.hidden; });
 
   const loop = (t: number) => {
     if (!paused && W > 0) {
-      const dt = Math.min((t - prev) / 1000, 0.05); // seconds; cap avoids spiral-of-death
+      const dt = Math.min((t - prev) / 1000, 0.05); // seconds; cap prevents spiral-of-death on tab restore
       if (prev > 0) stepBoids(boids, dt, W, H);
       ctx.clearRect(0, 0, W, H);
-      renderBoids(ctx, boids, t);
+      renderBoids(ctx, boids, sprite);
     }
     prev = t;
     requestAnimationFrame(loop);
