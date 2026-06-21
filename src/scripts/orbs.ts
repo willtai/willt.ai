@@ -16,28 +16,28 @@
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ─── Flock layout ───────────────────────────────────────────────────────────
-const N_FLOCKS = 4;   // independent sub-flocks
-const COUNT    = 12;  // birds per flock (48 total) — sparse, star-like spacing
+const N_FLOCKS = 4;  // independent sub-flocks
+const COUNT    = 3;  // birds per flock (12 total) — maximum spread, star-like
 
 // ─── Boid tuning (calm, dreamlike) ──────────────────────────────────────────
 const V_MAX    = 55;   // px/sec — slow float
 const V_MIN    = 12;   // px/sec
-const PERC_R   = 320;  // wide perception so birds can still see each other when spread out
-const SEP_R    = 200;  // ~7× original — enforces star-like gaps between points
+const PERC_R   = 700;  // can see across the whole canvas
+const SEP_R    = 400;  // ~14× original — pushes birds to max canvas spread
 const MAX_SEP  = 260;  // separation acceleration cap px/sec²
 const MAX_ALI  = 80;   // alignment acceleration cap px/sec²
-const MAX_COH  = 25;   // cohesion toward own flock's centroid px/sec²
+const MAX_COH  = 0;    // no cohesion — birds spread freely, don't cluster
 const MAX_WALL = 180;  // boundary turn force px/sec²
 const MARGIN   = 130;  // px from edge where boundary force starts
 // Wander: each bird has a slowly-drifting personal heading
-const WANDER_R    = 22;   // radius of wander circle (strength)
-const WANDER_RATE = 0.4;  // rad/sec max wander angle change
+const WANDER_R    = 28;   // radius of wander circle (strength)
+const WANDER_RATE = 0.35; // rad/sec max wander angle change
 
 // ─── Visual ─────────────────────────────────────────────────────────────────
-const SPRITE_R = 32;   // larger glow — birds are isolated so each needs to read clearly
-const GLOW_A   = 0.22; // brighter individually (no longer stacking with nearby birds)
-const DOT_R    = 2.8;  // core dot radius px
-const DOT_A    = 0.88; // core dot alpha
+const SPRITE_R = 42;   // large glow halo — each star reads clearly in isolation
+const GLOW_A   = 0.30; // bright individually — no stacking neighbours
+const DOT_R    = 3.2;  // core dot radius px
+const DOT_A    = 0.90; // core dot alpha
 
 // One glow colour per sub-flock (all from site palette, subtly varied)
 // --color-glow #34d399, --color-teal #0d9488, --color-celadon #ACE1AF, emerald #50C878
