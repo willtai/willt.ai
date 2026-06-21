@@ -64,13 +64,15 @@ describe("production build", () => {
     expect(html).toContain("wtaisen@gmail.com");
   });
 
-  it("ships zero separate JS files", () => {
+  it("ships at most one bundled JS file (animation script)", () => {
     const jsFiles = existsSync(resolve(distDir, "_astro"))
       ? execSync(`find ${resolve(distDir, "_astro")} -name "*.js" 2>/dev/null`)
           .toString()
           .trim()
-      : "";
-    expect(jsFiles).toBe("");
+          .split("\n")
+          .filter(Boolean)
+      : [];
+    expect(jsFiles.length).toBeLessThanOrEqual(1);
   });
 
   it("includes robots.txt", () => {
