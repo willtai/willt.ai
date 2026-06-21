@@ -1,72 +1,71 @@
 /**
- * Murmuration — 500 glowing orbs in Reynolds boids formation.
+ * Murmuration — 400 glowing orbs in Reynolds boids formation.
  *
- * 3–5 independent sub-flocks with local-only rules prevent global convergence.
- * Each bird also has a slowly-rotating wander heading so alignment never
- * fully locks the group into a single ball.
+ * Design principle: separation + alignment + wander, NO cohesion.
+ * Without a shared centroid, birds can never permanently converge into one ball.
+ * Instead they form local flowing streams that briefly merge (additive glow
+ * brightens at intersections) then peel apart as each bird's wander angle
+ * gradually pulls it in its own direction.
  *
- * Performance:
- *   Glow: pre-rendered sprite stamped via drawImage (no per-frame gradient alloc)
- *   Core dots: single batched beginPath/fill per colour group
- *   Additive blending: overlapping glows stack, flock centre glows bright
+ * Three visual depth layers (large/faint → small/bright) are purely cosmetic —
+ * all birds use identical boid physics. Additive blending means dense passes
+ * bloom bright; lone birds are soft and subtle.
  *
  * Palette: --color-glow #34d399 / --color-teal #0d9488 / --color-celadon #ACE1AF
  */
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ─── Flock layout ───────────────────────────────────────────────────────────
-const N_FLOCKS = 4;  // independent sub-flocks
-const COUNT    = 3;  // birds per flock (12 total) — maximum spread, star-like
+// ─── Population ─────────────────────────────────────────────────────────────
+const COUNT = 400; // total birds across all layers
 
-// ─── Boid tuning (calm, dreamlike) ──────────────────────────────────────────
-const V_MAX    = 55;   // px/sec — slow float
-const V_MIN    = 12;   // px/sec
-const PERC_R   = 700;  // can see across the whole canvas
-const SEP_R    = 400;  // ~14× original — pushes birds to max canvas spread
-const MAX_SEP  = 260;  // separation acceleration cap px/sec²
-const MAX_ALI  = 80;   // alignment acceleration cap px/sec²
-const MAX_COH  = 0;    // no cohesion — birds spread freely, don't cluster
-const MAX_WALL = 180;  // boundary turn force px/sec²
-const MARGIN   = 130;  // px from edge where boundary force starts
-// Wander: each bird has a slowly-drifting personal heading
-const WANDER_R    = 28;   // radius of wander circle (strength)
-const WANDER_RATE = 0.35; // rad/sec max wander angle change
+// ─── Boid physics ───────────────────────────────────────────────────────────
+const V_MAX  = 60;  // px/sec — slow, dreamlike drift
+const V_MIN  = 16;  // px/sec
+const PERC_R = 85;  // perception radius — local only, prevents global order
+const SEP_R  = 45;  // separation radius — birds avoid getting this close
+// No cohesion: removing the centroid pull is what prevents permanent convergence.
+// Without it, clusters are temporary — streams form, meet, and diverge naturally.
+const MAX_SEP  = 280; // separation force cap px/sec²
+const MAX_ALI  = 110; // alignment force cap px/sec² — strong: local streams form fast
+const MAX_WALL = 200; // boundary avoidance force cap px/sec²
+const MARGIN   = 140; // px from edge where wall force begins
+// Wander: each bird has a personal heading that slowly rotates.
+// This is what causes streams to split — even birds flying together gradually
+// diverge as their wander angles drift apart.
+const WANDER_SPEED = 30;  // px/sec² — how hard the bird pushes its own direction
+const WANDER_RATE  = 0.45; // rad/sec max — how fast the personal angle rotates
 
-// ─── Visual ─────────────────────────────────────────────────────────────────
-const SPRITE_R = 42;   // large glow halo — each star reads clearly in isolation
-const GLOW_A   = 0.30; // bright individually — no stacking neighbours
-const DOT_R    = 3.2;  // core dot radius px
-const DOT_A    = 0.90; // core dot alpha
-
-// One glow colour per sub-flock (all from site palette, subtly varied)
-// --color-glow #34d399, --color-teal #0d9488, --color-celadon #ACE1AF, emerald #50C878
-const FLOCK_COLORS: [number, number, number][] = [
-  [52, 211, 153],  // glow
-  [13, 148, 136],  // teal
-  [172, 225, 175], // celadon
-  [80, 200, 120],  // emerald
+// ─── Visual layers ──────────────────────────────────────────────────────────
+// Layer 0: large, very faint — ambient depth behind the action
+// Layer 1: medium, moderate  — main flowing streams
+// Layer 2: small, bright     — foreground sparks; these pop on dense passes
+interface Layer { r: number; alpha: number; dotR: number; dotA: number; share: number }
+const LAYERS: Layer[] = [
+  { r: 48, alpha: 0.038, dotR: 0.0, dotA: 0.00, share: 0.20 }, //  80 birds
+  { r: 24, alpha: 0.075, dotR: 1.8, dotA: 0.55, share: 0.50 }, // 200 birds
+  { r: 13, alpha: 0.130, dotR: 2.6, dotA: 0.88, share: 0.30 }, // 120 birds
 ];
 
 interface Boid {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  flock: number;       // sub-flock index
-  wanderAngle: number; // personal heading offset (radians)
+  x: number; y: number;
+  vx: number; vy: number;
+  wanderAngle: number;
+  layer: number;
 }
 
-function mkBoid(w: number, h: number, flock: number): Boid {
+function mkBoid(w: number, h: number): Boid {
   const ang = Math.random() * Math.PI * 2;
-  const spd = V_MIN + Math.random() * (V_MAX - V_MIN) * 0.6;
+  const spd = V_MIN + Math.random() * (V_MAX - V_MIN) * 0.75;
+  const r = Math.random();
+  const layer = r < LAYERS[0].share ? 0 : r < LAYERS[0].share + LAYERS[1].share ? 1 : 2;
   return {
     x:           Math.random() * w,
     y:           Math.random() * h,
     vx:          Math.cos(ang) * spd,
     vy:          Math.sin(ang) * spd,
-    flock,
     wanderAngle: Math.random() * Math.PI * 2,
+    layer,
   };
 }
 
@@ -77,10 +76,8 @@ function clampMag(x: number, y: number, max: number): [number, number] {
 
 function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
   for (const b of boids) {
-    // ── Three boid rules (local perception only) ─────────────────────────
-    let sx = 0, sy = 0;  // separation — all nearby birds regardless of flock
-    let ax = 0, ay = 0;  // alignment  — own flock only
-    let cx = 0, cy = 0;  // cohesion   — own flock only
+    let sx = 0, sy = 0; // separation
+    let ax = 0, ay = 0; // alignment
     let n = 0;
 
     for (const o of boids) {
@@ -90,47 +87,38 @@ function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
       const d2 = dx * dx + dy * dy;
       if (d2 >= PERC_R * PERC_R) continue;
 
-      // Separation applies cross-flock (prevent any clumping)
-      if (d2 < SEP_R * SEP_R && d2 > 0) {
-        const d = Math.sqrt(d2);
-        const strength = 1 - d / SEP_R;
-        sx -= (dx / d) * strength;
-        sy -= (dy / d) * strength;
-      }
+      // Alignment — match speed and direction of nearby birds
+      ax += o.vx; ay += o.vy;
+      n++;
 
-      // Alignment + cohesion: own flock only — prevents global convergence
-      if (o.flock === b.flock) {
-        ax += o.vx; ay += o.vy;
-        cx += o.x;  cy += o.y;
-        n++;
+      // Separation — steer away from birds that are too close
+      if (d2 < SEP_R * SEP_R && d2 > 0) {
+        const d   = Math.sqrt(d2);
+        const str = 1 - d / SEP_R; // linear falloff: strongest at d=0
+        sx -= (dx / d) * str;
+        sy -= (dy / d) * str;
       }
     }
 
     const [fsx, fsy] = clampMag(sx, sy, MAX_SEP);
+    let fax = 0, fay = 0;
+    if (n > 0) [fax, fay] = clampMag(ax / n - b.vx, ay / n - b.vy, MAX_ALI);
 
-    let fax = 0, fay = 0, fcx = 0, fcy = 0;
-    if (n > 0) {
-      [fax, fay] = clampMag(ax / n - b.vx, ay / n - b.vy, MAX_ALI);
-      [fcx, fcy] = clampMag(cx / n - b.x,  cy / n - b.y,  MAX_COH);
-    }
-
-    // ── Wander: slowly rotate a personal heading so the bird never fully
-    //    aligns with its flock — prevents single-orb collapse ──────────────
+    // Wander — slowly rotate the bird's personal preferred heading
     b.wanderAngle += (Math.random() - 0.5) * 2 * WANDER_RATE * dt;
-    const wander_x = Math.cos(b.wanderAngle) * WANDER_R;
-    const wander_y = Math.sin(b.wanderAngle) * WANDER_R;
+    const wx = Math.cos(b.wanderAngle) * WANDER_SPEED;
+    const wy = Math.sin(b.wanderAngle) * WANDER_SPEED;
 
-    // ── Soft boundary avoidance ──────────────────────────────────────────
+    // Boundary avoidance — soft force ramping up near edges
     let bx = 0, by = 0;
     if (b.x < MARGIN)     bx += MAX_WALL * (1 - b.x / MARGIN);
     if (b.x > w - MARGIN) bx -= MAX_WALL * (1 - (w - b.x) / MARGIN);
     if (b.y < MARGIN)     by += MAX_WALL * (1 - b.y / MARGIN);
     if (b.y > h - MARGIN) by -= MAX_WALL * (1 - (h - b.y) / MARGIN);
 
-    b.vx += (fsx + fax + fcx + wander_x + bx) * dt;
-    b.vy += (fsy + fay + fcy + wander_y + by) * dt;
+    b.vx += (fsx + fax + wx + bx) * dt;
+    b.vy += (fsy + fay + wy + by) * dt;
 
-    // Clamp speed to [V_MIN, V_MAX]
     const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy) || V_MIN;
     if (spd > V_MAX)      { b.vx *= V_MAX / spd; b.vy *= V_MAX / spd; }
     else if (spd < V_MIN) { b.vx *= V_MIN / spd; b.vy *= V_MIN / spd; }
@@ -138,58 +126,66 @@ function stepBoids(boids: Boid[], dt: number, w: number, h: number): void {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
 
-    // Hard clamp — safety net
-    if (b.x < 0)  { b.x = 0;  b.vx =  Math.abs(b.vx); }
-    if (b.x > w)  { b.x = w;  b.vx = -Math.abs(b.vx); }
-    if (b.y < 0)  { b.y = 0;  b.vy =  Math.abs(b.vy); }
-    if (b.y > h)  { b.y = h;  b.vy = -Math.abs(b.vy); }
+    // Hard clamp — fallback behind the soft boundary force
+    if (b.x < 0) { b.x = 0; b.vx =  Math.abs(b.vx); }
+    if (b.x > w) { b.x = w; b.vx = -Math.abs(b.vx); }
+    if (b.y < 0) { b.y = 0; b.vy =  Math.abs(b.vy); }
+    if (b.y > h) { b.y = h; b.vy = -Math.abs(b.vy); }
   }
 }
 
-// Pre-render one glow sprite per flock colour. Stamped via drawImage —
-// avoids creating 500 radial gradient objects per frame.
-function makeSprite(r: number, g: number, b: number): HTMLCanvasElement {
-  const size = SPRITE_R * 2;
-  const c = document.createElement('canvas');
+// Pre-render one glow sprite per layer. Stamped via drawImage each frame —
+// avoids allocating 400 radial gradient objects per frame (GC pressure).
+function makeSprite(layer: Layer): HTMLCanvasElement {
+  const { r } = layer;
+  const size = r * 2;
+  const c    = document.createElement('canvas');
   c.width = c.height = size;
   const cx = c.getContext('2d')!;
-  const grd = cx.createRadialGradient(SPRITE_R, SPRITE_R, 0, SPRITE_R, SPRITE_R, SPRITE_R);
-  grd.addColorStop(0,    `rgba(${r},${g},${b},1)`);
-  grd.addColorStop(0.3,  `rgba(${r},${g},${b},0.65)`);
-  grd.addColorStop(0.7,  `rgba(${r},${g},${b},0.15)`);
-  grd.addColorStop(1,    `rgba(${r},${g},${b},0)`);
-  cx.fillStyle = grd;
+  const g  = cx.createRadialGradient(r, r, 0, r, r, r);
+  g.addColorStop(0,    'rgba(52,211,153,1)');    // --color-glow: bright emerald core
+  g.addColorStop(0.28, 'rgba(52,211,153,0.75)');
+  g.addColorStop(0.62, 'rgba(13,148,136,0.28)'); // --color-teal: cool fade
+  g.addColorStop(1,    'rgba(13,148,136,0)');
+  cx.fillStyle = g;
   cx.beginPath();
-  cx.arc(SPRITE_R, SPRITE_R, SPRITE_R, 0, Math.PI * 2);
+  cx.arc(r, r, r, 0, Math.PI * 2);
   cx.fill();
   return c;
 }
 
 function renderBoids(
-  ctx: CanvasRenderingContext2D,
-  boids: Boid[],
+  ctx:     CanvasRenderingContext2D,
+  boids:   Boid[],
   sprites: HTMLCanvasElement[],
 ): void {
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = GLOW_A;
 
-  const off = SPRITE_R;
-  for (const b of boids) {
-    ctx.drawImage(sprites[b.flock % sprites.length], b.x - off, b.y - off);
-  }
+  // Draw back-to-front so foreground sparks bloom on top of ambient glow
+  for (let l = 0; l < LAYERS.length; l++) {
+    const { alpha, dotR, dotA } = LAYERS[l];
+    const sprite = sprites[l];
+    const off    = sprite.width / 2;
 
-  // Core dots — batched by flock colour to minimise fillStyle switches
-  ctx.globalAlpha = DOT_A;
-  for (let f = 0; f < N_FLOCKS; f++) {
-    const [r, g, bl] = FLOCK_COLORS[f % FLOCK_COLORS.length];
-    ctx.fillStyle = `rgba(${r},${g},${bl},1)`;
-    ctx.beginPath();
+    // Glow halos
+    ctx.globalAlpha = alpha;
     for (const b of boids) {
-      if (b.flock !== f) continue;
-      ctx.moveTo(b.x + DOT_R, b.y);
-      ctx.arc(b.x, b.y, DOT_R, 0, Math.PI * 2);
+      if (b.layer !== l) continue;
+      ctx.drawImage(sprite, b.x - off, b.y - off);
     }
-    ctx.fill();
+
+    // Core dots (only layers 1 and 2 — background layer is glow-only)
+    if (dotR > 0) {
+      ctx.globalAlpha = dotA;
+      ctx.fillStyle = 'rgba(172,225,175,1)'; // --color-celadon: cooler than glow, creates contrast
+      ctx.beginPath();
+      for (const b of boids) {
+        if (b.layer !== l) continue;
+        ctx.moveTo(b.x + dotR, b.y);
+        ctx.arc(b.x, b.y, dotR, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
   }
 
   ctx.globalAlpha = 1;
@@ -204,8 +200,8 @@ document.querySelectorAll<HTMLElement>('.gradient-mesh').forEach((mesh) => {
     'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;';
   mesh.prepend(canvas);
 
-  const ctx    = canvas.getContext('2d')!;
-  const sprites = FLOCK_COLORS.slice(0, N_FLOCKS).map(([r, g, b]) => makeSprite(r, g, b));
+  const ctx     = canvas.getContext('2d')!;
+  const sprites = LAYERS.map(makeSprite);
 
   let W = 0, H = 0;
   let boids: Boid[] = [];
@@ -213,19 +209,13 @@ document.querySelectorAll<HTMLElement>('.gradient-mesh').forEach((mesh) => {
   new ResizeObserver(() => {
     W = canvas.width  = mesh.clientWidth;
     H = canvas.height = mesh.clientHeight;
-    if (boids.length === 0) {
-      boids = Array.from({ length: N_FLOCKS }, (_, f) =>
-        Array.from({ length: COUNT }, () => mkBoid(W, H, f))
-      ).flat();
-    }
+    if (boids.length === 0) boids = Array.from({ length: COUNT }, () => mkBoid(W, H));
   }).observe(mesh);
 
   if (REDUCED) {
     W = canvas.width  = mesh.clientWidth;
     H = canvas.height = mesh.clientHeight;
-    boids = Array.from({ length: N_FLOCKS }, (_, f) =>
-      Array.from({ length: COUNT }, () => mkBoid(W, H, f))
-    ).flat();
+    boids = Array.from({ length: COUNT }, () => mkBoid(W, H));
     renderBoids(ctx, boids, sprites);
     return;
   }
