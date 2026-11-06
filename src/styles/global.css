@@ -178,16 +178,6 @@ body {
   letter-spacing: -0.015em;
 }
 
-.cursor {
-  animation: blink 1.1s steps(1, end) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 .tagline {
   margin: 22px 0 0;
   max-width: 42ch;
@@ -476,8 +466,5 @@ a.role:focus-visible .go {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-  .cursor {
-    animation: none;
   }
 }
