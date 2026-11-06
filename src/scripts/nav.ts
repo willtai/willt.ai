@@ -1,35 +1,37 @@
-const nav = document.getElementById("site-nav");
-const links = document.querySelectorAll<HTMLAnchorElement>(".nav-link");
+const SECTION_IDS = ["top", "experience", "projects", "contact"] as const;
 
-if (nav) {
-  const showNav = () => {
-    const scrolled = window.scrollY > 300;
-    nav.classList.toggle("opacity-0", !scrolled);
-    nav.classList.toggle("pointer-events-none", !scrolled);
-    nav.classList.toggle("opacity-100", scrolled);
-    nav.classList.toggle("pointer-events-auto", scrolled);
+export function initNav(): void {
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".nav-link"));
+  if (links.length === 0) return;
+
+  let current = "";
+  let queued = false;
+
+  const update = (): void => {
+    queued = false;
+    let active: string = SECTION_IDS[0];
+    for (const id of SECTION_IDS) {
+      const el = document.getElementById(id);
+      if (el && el.getBoundingClientRect().top <= window.innerHeight * 0.38) active = id;
+    }
+    const doc = document.documentElement;
+    const scrollable = doc.scrollHeight - window.innerHeight > 4;
+    if (scrollable && window.scrollY + window.innerHeight >= doc.scrollHeight - 4) active = "contact";
+    if (active === current) return;
+    current = active;
+    for (const link of links) {
+      link.setAttribute("aria-current", link.dataset.section === active ? "true" : "false");
+    }
   };
 
-  window.addEventListener("scroll", showNav, { passive: true });
-  showNav();
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(update);
+    },
+    { passive: true }
+  );
+  update();
 }
-
-const sectionObserver = new IntersectionObserver(
-  (entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        const id = entry.target.id;
-        links.forEach((link) => {
-          const isActive = link.getAttribute("data-section") === id;
-          link.classList.toggle("text-white", isActive);
-          link.classList.toggle("bg-white/10", isActive);
-        });
-      }
-    }
-  },
-  { threshold: 0.3 }
-);
-
-document.querySelectorAll("section[id]").forEach((section) => {
-  sectionObserver.observe(section);
-});
