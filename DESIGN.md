@@ -1,6 +1,8 @@
 # Murmuration
 
 ## Concept
+The design should feel calm and grounded in nature, with sunrise and sunset light. Typography stays still; the murmuration provides the primary movement. Avoid blinking cursors and terminal-style decoration.
+
 One dusk sky over a reedbed spans the page. A perspective starling flock flies behind feathered haze panels; near birds pass in front of the hero name.
 
 ## Palette
@@ -23,7 +25,7 @@ The simulation uses 3D boids, separation and up to seven nearest neighbours with
 
 Bird bodies and jointed wings orient along velocity, bank into turns and alternate flap bursts with glides. Perspective projection and six depth buckets provide size and haze cues. Birds lift off from reeds on load. Pointer movement repels them; clicks and taps startle them.
 
-Scroll darkens the sky and reveals stars. Near the bottom, birds roost; scrolling back up releases them. Reduced motion renders one still frame, disables smooth scrolling and stops cursor blinking.
+Scroll darkens the sky and reveals stars. Near the bottom, birds roost; scrolling back up releases them. Reduced motion renders one still frame, disables smooth scrolling.
 
 Performance: one continuous animation loop, typed arrays, a counting-sort uniform grid, cached sky, batched bird paths, device pixel ratio capped at 2 and canvas backing area targeted at 5.5M pixels. Automatic flock size scales with viewport area up to 650. Animation pauses in hidden tabs.
 
