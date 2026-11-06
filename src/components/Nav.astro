@@ -7,19 +7,15 @@ const sections = [
 ];
 ---
 
-<nav
-  id="site-nav"
-  class="fixed top-4 left-1/2 -translate-x-1/2 z-50 opacity-0 pointer-events-none transition-all duration-300"
->
-  <div class="flex items-center gap-1 px-2 py-1.5 rounded-full bg-[#0c1f17]/90 backdrop-blur-lg shadow-lg shadow-black/20">
-    {sections.map((section) => (
-      <a
-        href={`#${section.id}`}
-        class="nav-link px-3 py-1 text-xs font-medium text-white/50 hover:text-white rounded-full transition-colors duration-200"
-        data-section={section.id}
-      >
-        {section.label}
-      </a>
-    ))}
-  </div>
+<nav id="site-nav" class="nav" aria-label="Sections">
+  {sections.map((section, i) => (
+    <a
+      href={`#${section.id}`}
+      class="nav-link"
+      data-section={section.id}
+      aria-current={i === 0 ? "true" : "false"}
+    >
+      {section.label}
+    </a>
+  ))}
 </nav>

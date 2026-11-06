@@ -1,23 +1,14 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --color-bg: #ffffff;
-  --color-fg: #0a2540;
-  --color-muted: #425466;
-  --color-border: #e6ebf1;
-  --color-surface: #ffffff;
-  --color-accent: #2d5a3d;
-  --color-dark: #0c1f17;
-  --color-dark-lighter: #163026;
-  --color-glow: #34d399;
-  --color-teal: #0d9488;
-  --color-celadon: #ACE1AF;
-}
-
 /* ──────────────────────────────────────────────
-   Base
+   willt.ai: Murmuration
+   One dusk sky, a starling flock, haze panels.
+   The sky and birds are painted by src/scripts/murmuration.ts
    ────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light;
+}
 
 html {
   scroll-behavior: smooth;
@@ -26,263 +17,467 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-  line-height: 1.6;
+  margin: 0;
+  background: #c3a3a6;
 }
 
 ::selection {
-  background-color: var(--color-accent);
-  color: #ffffff;
+  background: #1c1826;
+  color: #fbf2ea;
 }
 
-/* ──────────────────────────────────────────────
-   Background sections — Dark (hero / projects)
-   Canvas orbs are injected by orbs.ts at runtime
-   ────────────────────────────────────────────── */
-
-.gradient-mesh {
+.wt {
+  --ink: #1c1826;
+  --soft: #463c4f;
+  --paper: rgba(251, 242, 234, 0.8);
+  --rule: rgba(28, 24, 38, 0.16);
+  --hero: #1c1826;
+  --reed: clamp(52px, 10vh, 110px);
   position: relative;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: clip;
+  color: var(--ink);
+  font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
-/* ──────────────────────────────────────────────
-   Card — Light sections
-   White bg, shadow-only depth, lift on hover
-   ────────────────────────────────────────────── */
-
-.card-light {
-  background: #ffffff;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
-}
-
-.card-light:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-/* Legacy alias — keep for existing markup */
-.card-hover {
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-/* ──────────────────────────────────────────────
-   Glass Card — Dark/mesh sections
-   Frosted glass with border glow on hover
-   ────────────────────────────────────────────── */
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.06);
-  border: none;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow:
-    0 2px 16px rgba(0, 0, 0, 0.15),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
-  transition: transform 0.28s ease, box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.22),
-    0 0 48px rgba(52, 211, 153, 0.08),
-    0 0 24px rgba(13, 148, 136, 0.06),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
-}
-
-/* ──────────────────────────────────────────────
-   Hover Glow — Radiant border glow behind element
-   ────────────────────────────────────────────── */
-
-.glow-hover {
-  position: relative;
-}
-
-.glow-hover::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(52, 211, 153, 0.3),
-    rgba(13, 148, 136, 0.2),
-    rgba(172, 225, 175, 0.15)
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
-  filter: blur(8px);
-}
-
-.glow-hover:hover::after {
-  opacity: 1;
-}
-
-/* ──────────────────────────────────────────────
-   Scroll Reveal
-   ────────────────────────────────────────────── */
-
-.reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Stagger delays for child elements */
-.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
-.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
-.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
-.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
-.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
-.stagger > .reveal:nth-child(6) { transition-delay: 400ms; }
-
-/* ──────────────────────────────────────────────
-   Hero Entrance
-   ────────────────────────────────────────────── */
-
-.hero-enter {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: hero-fade-in 0.8s ease forwards;
-}
-
-.hero-enter-delay-1 { animation-delay: 0.15s; }
-.hero-enter-delay-2 { animation-delay: 0.3s; }
-.hero-enter-delay-3 { animation-delay: 0.45s; }
-
-@keyframes hero-fade-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+  body {
+    background: #3a3452;
+  }
+  .wt {
+    --ink: #f4ede8;
+    --soft: #cdc1ca;
+    --paper: rgba(22, 20, 38, 0.66);
+    --rule: rgba(244, 237, 232, 0.2);
+    --hero: #fbf6f2;
   }
 }
 
-/* ──────────────────────────────────────────────
-   Blinking Cursor
-   ────────────────────────────────────────────── */
+.wt a,
+.wt button {
+  color: inherit;
+}
 
-.blink-cursor {
-  animation: blink 1s step-end infinite;
+.wt a:focus-visible,
+.wt button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* ── Sky canvases (fixed, behind and in front of content) ── */
+
+.sky {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+}
+
+.sky-back {
+  z-index: 0;
+}
+
+.sky-front {
+  z-index: 3;
+}
+
+/* ── Nav ── */
+
+.nav {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 6;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--paper);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.nav-link {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link[aria-current="true"] {
+  background: var(--rule);
+}
+
+/* ── Links ── */
+
+.ulink {
+  padding: 10px 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  transition: text-decoration-color 0.2s ease;
+}
+
+.ulink:hover {
+  text-decoration-color: currentColor;
+}
+
+.links {
+  margin: 14px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 26px;
+  font-weight: 500;
+}
+
+/* ── Hero ── */
+
+.hero {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  height: min(100svh, 62.5rem);
+  min-height: 40rem;
+  padding: 0 6vw calc(var(--reed) + 40px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: var(--hero);
+}
+
+.hero-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.05);
+  margin-bottom: 22px;
+}
+
+.name {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(4.5rem, 11.5vw, 11rem);
+  line-height: 0.84;
+  letter-spacing: -0.015em;
+}
+
+.cursor {
+  animation: blink 1.1s steps(1, end) infinite;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
-/* ──────────────────────────────────────────────
-   Copy Toast
-   ────────────────────────────────────────────── */
+.tagline {
+  margin: 22px 0 0;
+  max-width: 42ch;
+  font-size: 1.25rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* ── Sections: haze panels floating on the sky ── */
+
+.sections {
+  position: relative;
+  z-index: 2;
+  padding-top: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 14rem;
+}
+
+.fog {
+  --f: 64px;
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  padding: 72px 80px;
+}
+
+.fog::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 var(--f), #000 calc(100% - var(--f)), transparent),
+    linear-gradient(180deg, transparent, #000 var(--f), #000 calc(100% - var(--f)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 var(--f), #000 calc(100% - var(--f)), transparent),
+    linear-gradient(180deg, transparent, #000 var(--f), #000 calc(100% - var(--f)), transparent);
+  mask-composite: intersect;
+}
+
+.fog-exp {
+  margin-left: 5vw;
+  width: min(760px, 62vw);
+}
+
+.fog-proj {
+  margin-left: auto;
+  margin-right: 6vw;
+  width: min(580px, 50vw);
+}
+
+.fog-contact {
+  margin-left: 16vw;
+  width: min(640px, 58vw);
+}
+
+.sec-title {
+  margin: 0 0 28px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 500;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.sec-title-2 {
+  margin-top: 64px;
+}
+
+/* ── Experience / education rows ── */
+
+.roles {
+  display: flex;
+  flex-direction: column;
+}
+
+.role {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+  text-decoration: none;
+}
+
+.role:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: #fffaf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px rgba(28, 24, 38, 0.08);
+}
+
+.tile img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.role-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.role-org {
+  font-size: 0.9375rem;
+  color: var(--soft);
+}
+
+.chip {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: 0.8;
+}
+
+.go {
+  opacity: 0.35;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+a.role:hover .go,
+a.role:focus-visible .go {
+  opacity: 1;
+  transform: translate(2px, -2px);
+}
+
+/* ── Projects ── */
+
+.project {
+  border-top: 1px solid var(--rule);
+  padding-top: 22px;
+}
+
+.project-title {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 3.75rem;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.project-desc {
+  margin: 14px 0 0;
+  max-width: 34ch;
+  font-size: 1.0625rem;
+  color: var(--soft);
+}
+
+/* ── Contact ── */
+
+.wt .mail {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #fffaf4;
+  color: #1c1826;
+  box-shadow:
+    0 0 0 1px rgba(28, 24, 38, 0.12),
+    0 10px 30px -12px rgba(28, 24, 38, 0.45);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mail-label {
+  font-weight: 500;
+}
+
+/* hint and toast share one cell; the toast replaces the hint for a moment */
+.mail-status {
+  display: inline-grid;
+}
+
+.mail-status > * {
+  grid-area: 1 / 1;
+  transition: opacity 0.2s ease;
+}
+
+.mail-hint {
+  font-size: 0.8125rem;
+  color: #5a5162;
+}
 
 .copy-toast {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3d4a6b;
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .copy-toast.show {
   opacity: 1;
 }
 
-/* ──────────────────────────────────────────────
-   Link Underline Animation
-   ────────────────────────────────────────────── */
+.mail-status:has(.copy-toast.show) .mail-hint {
+  opacity: 0;
+}
 
-.link-underline {
+/* ── Footer ── */
+
+.foot {
   position: relative;
-  text-decoration: none;
+  z-index: 2;
+  padding: 10rem 6vw calc(var(--reed) + 28px);
+  color: var(--hero);
 }
 
-.link-underline::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background-color: currentColor;
-  transition: width 0.28s ease;
+.foot p {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
-.link-underline:hover::after {
-  width: 100%;
+/* ── Phone ── */
+
+@media (max-width: 720px) {
+  .hero {
+    height: min(100svh, 52rem);
+    min-height: 36rem;
+    padding: 0 22px calc(var(--reed) + 28px);
+  }
+  .name {
+    font-size: clamp(3.6rem, 19vw, 5.4rem);
+  }
+  .tagline {
+    font-size: 1.0625rem;
+  }
+  .sections {
+    padding-top: 7rem;
+    gap: 7rem;
+  }
+  .fog {
+    --f: 22px;
+    padding: 52px 26px;
+  }
+  .fog-exp,
+  .fog-proj,
+  .fog-contact {
+    margin-left: 0;
+    margin-right: 0;
+    width: auto;
+  }
+  .nav {
+    top: 12px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .foot {
+    padding: 7rem 22px calc(var(--reed) + 22px);
+  }
 }
 
-/* ──────────────────────────────────────────────
-   Smooth Fluid Transitions — Global
-   Stripe applies transitions almost everywhere
-   ────────────────────────────────────────────── */
-
-a,
-button,
-input,
-textarea,
-[role="button"] {
-  transition-property: color, background-color, box-shadow, transform, opacity;
-  transition-duration: 0.28s;
-  transition-timing-function: ease;
-}
-
-/* ──────────────────────────────────────────────
-   Accent Button Glow
-   For primary CTAs — glowing emerald shadow
-   ────────────────────────────────────────────── */
-
-.btn-glow {
-  position: relative;
-  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2);
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
-}
-
-.btn-glow:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 4px 20px rgba(52, 211, 153, 0.35),
-    0 0 40px rgba(52, 211, 153, 0.1);
-}
-
-/* ──────────────────────────────────────────────
-   Text Gradient — For accent headings
-   ────────────────────────────────────────────── */
-
-.text-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-glow) 0%,
-    var(--color-teal) 50%,
-    var(--color-accent) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-warm {
-  background: linear-gradient(
-    135deg,
-    var(--color-glow) 0%,
-    var(--color-teal) 40%,
-    var(--color-celadon) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .cursor {
+    animation: none;
+  }
 }

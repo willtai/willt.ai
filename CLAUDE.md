@@ -1,11 +1,11 @@
 # CLAUDE.md — willt.ai
 
-Personal website for Will Tai. A single-page digital business card with a Stripe-inspired design.
+Personal website for Will Tai. A single-page digital business card with an editorial design.
 
 **Repo:** [github.com/willtai/willt.ai](https://github.com/willtai/willt.ai)
 
 ## Stack
-- **Astro 5** — static site, zero JS shipped by default
+- **Astro 6** — static site, zero JS shipped by default
 - **Tailwind CSS v4** — utility-first styling via `@tailwindcss/vite`
 - **TypeScript** — strict mode
 - **Vitest** — 27 unit/integration tests
@@ -33,7 +33,7 @@ src/
   data/site.ts          — All typed content (experience, projects, socials)
   layouts/Layout.astro  — Base HTML, fonts, meta, JSON-LD
   components/           — Astro components (Hero, Experience, Projects, Contact, Nav)
-  scripts/              — Vanilla TS (scroll reveal, copy-to-clipboard, nav, aurora)
+  scripts/              — main.ts entry, murmuration.ts flock, nav.ts, copy-email.ts
   styles/global.css     — Tailwind v4, CSS custom properties, animations
   pages/index.astro     — Composes all sections
 tests/
@@ -44,14 +44,12 @@ public/
 ```
 
 ## Design
-- Stripe-inspired with green accent colour
-- Inter font throughout
-- Northern lights aurora background effect (`aurora.ts`)
-- Gradient fade transitions between sections
-- Floating nav with scroll spy
-- British dry wit in copy, no hyphens (commas instead)
-- Zero JS shipped by default, tiny scripts inlined where needed
-- Whitespace is the feature
+- Dusk starling murmuration over reeds, with feathered haze panels
+- Cormorant Garamond headings and Geist body text
+- One script entry: `src/scripts/main.ts`; flock engine: `src/scripts/murmuration.ts`
+- Fixed pill navigation with scroll spy; dark and reduced-motion support
+- Content in `src/data/site.ts`, head metadata and JSON-LD intentionally kept unchanged
+- See `DESIGN.md` for the current design system
 
 ## Deployment
 Vercel with `willt.ai` custom domain. Auto-deploys from `main`.

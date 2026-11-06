@@ -1,23 +1,24 @@
-const button = document.getElementById("copy-email");
-const toast = document.getElementById("copy-toast");
+export function initCopyEmail(): void {
+  const button = document.getElementById("copy-email");
+  const toast = document.getElementById("copy-toast");
+  if (!button || !toast) return;
 
-if (button && toast) {
+  let timer = 0;
   button.addEventListener("click", async () => {
     const user = button.getAttribute("data-user");
     const domain = button.getAttribute("data-domain");
     if (!user || !domain) return;
     const email = `${user}@${domain}`;
 
-    // Copy to clipboard silently
     try {
       await navigator.clipboard.writeText(email);
       toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 1500);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => toast.classList.remove("show"), 1500);
     } catch {
-      // clipboard failed, that's fine
+      // clipboard unavailable, the mailto below still works
     }
 
-    // Always open mailto: link
     window.location.href = `mailto:${email}`;
   });
 }
