@@ -1,3 +1,6 @@
+import { sampleGiantBird, pairByAngle, mapBirdSample, type BirdSample } from "./giant-bird";
+export { sampleGiantBird, pairByAngle } from "./giant-bird";
+
 /**
  * Murmuration: a starling flock over a dusk sky, painted on two fixed canvases.
  *
@@ -34,6 +37,8 @@ export interface FlockOptions {
 export interface FlockHandle {
   set(next: Partial<FlockOptions>): void;
   stop(): void;
+  eggScreen(): { x: number; y: number; r: number } | null;
+  triggerEgg(): void;
 }
 
 type Vec3 = [number, number, number];
@@ -191,6 +196,143 @@ export function startMurmuration(
   let skyName = "";
   const groups: Group[] = [];
   const fal: Falcon = { on: false, x: 0, y: 0, z: F, vx: 0, vy: 0, vz: 0, ph: 0, t: 0, next: 9, g: 0, passing: false };
+
+  const host = back.closest<HTMLElement>(".wt");
+  const toast = doc.getElementById("egg-toast");
+  let egg = -1, eggX = 0, eggY = 0, eggSpan = 0, eggVisible = false;
+  let elapsed = -1, cooldown = 0, toastShown = false;
+  let anchorX = 0.5, anchorY = 0.35, centreX = 0, centreY = 0, giantSpan = 1;
+  let samples: BirdSample[] = [];
+  let pairs: Int32Array = new Int32Array(0);
+  const targetX = new Float32Array(MAXN), targetY = new Float32Array(MAXN);
+  const model = new Float32Array(3);
+  let stillTimer = 0, toastTimer = 0, cooldownTimer = 0;
+  let savedStill: Float32Array[] | null = null;
+  const gathering = (): boolean => elapsed >= 0.4;
+  const readyEgg = (): boolean => elapsed < 0 && cooldown <= 0 && !roost && eggVisible;
+  const blocked = (target: EventTarget | null): boolean =>
+    target instanceof Element && !!target.closest("a, button, .nav, .fog");
+  const span0Hit = 12 * Math.max(0.74, Math.min(1.1, W / 1200));
+  const nearEgg = (x: number, y: number, touch = false): boolean =>
+    readyEgg() && Math.hypot(x - eggX, y - eggY) <= Math.max(touch ? 38 : 26, eggSpan * 0.8);
+  const hitBird = (x: number, y: number): boolean => {
+    if (readyEgg() && Math.hypot(x - eggX, y - eggY) <= Math.max(38, eggSpan * 0.8)) return true;
+    for (let m = 0; m < N; m++) {
+      if (pr[m]) continue;
+      const iz = F / pz[m], dx = x - (W / 2 + px[m] * iz), dy = y - (H / 2 + py[m] * iz);
+      const radius = Math.max(8, span0Hit * iz * sz[m]);
+      if (dx * dx + dy * dy <= radius * radius) return true;
+    }
+    return false;
+  };
+  const hoverEgg = (): void => {
+    const hit = nearEgg(mx, my) && !blocked(doc.elementFromPoint(mx, my));
+    host?.classList.toggle("egg-hover", hit);
+  };
+
+  const chooseEgg = (): void => {
+    const old = egg;
+    let count = 0;
+    for (let i = 0; i < N; i++) {
+      if (pr[i] || i === old) continue;
+      if (Math.random() < 1 / ++count) egg = i;
+    }
+  };
+  const layoutGiant = (): void => {
+    // Bound the whole wingspan, including lifted wings, above the reeds.
+    giantSpan = Math.min(W * (W <= 720 ? 0.92 : 0.7), (H - RH - 72) / 1.12);
+    if (W <= 720) giantSpan = Math.min(giantSpan, 9 * Math.sqrt(N / 0.17));
+    const marginX = Math.min(W / 2, giantSpan * 0.32 + 16);
+    const marginY = giantSpan * 0.56 + 16;
+    centreX = Math.max(marginX, Math.min(W - marginX, anchorX * W));
+    centreY = Math.max(marginY, Math.min(H - RH - marginY, anchorY * H));
+  };
+  const updateTargets = (): void => {
+    const phase = Math.max(0, elapsed - 2.2) * Math.PI * 2 / 1.2;
+    const th = elapsed < 2.2 ? 0.15 : 0.85 * Math.sin(phase);
+    const depart = Math.max(0, elapsed - 4.6);
+    const travel = depart * 520 * U;
+    for (let j = 0; j < samples.length; j++) {
+      mapBirdSample(samples[j], th, model);
+      targetX[j] = centreX - W / 2 + (0.94 * model[0] + 0.34 * model[1]) * giantSpan + travel * 0.94;
+      targetY[j] = centreY - H / 2 + (-0.34 * model[0] + 0.94 * model[1] - 0.35 * model[2]) * giantSpan - travel * 0.64;
+    }
+  };
+  const showToast = (): void => {
+    if (toastShown) return;
+    toastShown = true;
+    if (toast) {
+      toast.textContent = "You found the odd one out.";
+      toast.classList.add("show");
+    }
+    // Animated mode uses the simulation clock, including visibility pauses.
+    if (reduce) toastTimer = win.setTimeout(() => toast?.classList.remove("show"), 4000);
+  };
+  const finishEgg = (): void => {
+    elapsed = -1;
+    cooldown = 20;
+    samples = [];
+    pairs = new Int32Array(0);
+    chooseEgg();
+    if (reduce) cooldownTimer = win.setTimeout(() => {
+      cooldown = 0;
+      render(0);
+    }, 20000);
+    else setCount();
+  };
+  const beginGather = (): void => {
+    for (let i = 0; i < N; i++) {
+      if (!pr[i]) continue;
+      pr[i] = 0;
+      pz[i] = F;
+      px[i] = Math.max(0, Math.min(W, pu[i])) - W / 2;
+      py[i] = H / 2 - RH * 0.45;
+      vx[i] = 0; vy[i] = -170 * U; vz[i] = 0;
+    }
+    samples = sampleGiantBird(N, (Math.random() * 0xffffffff) >>> 0);
+    layoutGiant();
+    updateTargets();
+    pairs = pairByAngle(
+      Array.from({ length: N }, (_, i) => ({ x: px[i] * F / pz[i], y: py[i] * F / pz[i] })),
+      Array.from({ length: N }, (_, i) => ({ x: targetX[i], y: targetY[i] }))
+    );
+    const headBird = pairs.indexOf(0);
+    pairs[headBird] = pairs[egg];
+    pairs[egg] = 0;
+  };
+  const placeStillGiant = (): void => {
+    updateTargets();
+    for (let i = 0; i < N; i++) {
+      px[i] = targetX[pairs[i]]; py[i] = targetY[pairs[i]]; pz[i] = F;
+      vx[i] = 94; vy[i] = -34; vz[i] = 0; fa[i] = 0.5;
+    }
+  };
+  const triggerEgg = (): void => {
+    readScroll(0);
+    if (!readyEgg()) return;
+    anchorX = eggX / W; anchorY = eggY / H;
+    elapsed = 0; toastShown = false;
+    bo[egg] = 1; fa[egg] = 1;
+    fal.on = false;
+    host?.classList.remove("egg-hover");
+    if (reduce) {
+      savedStill = [px.slice(), py.slice(), pz.slice(), vx.slice(), vy.slice(), vz.slice(), fa.slice()];
+      elapsed = 2.35;
+      beginGather();
+      placeStillGiant();
+      showToast();
+      render(0);
+      stillTimer = win.setTimeout(() => {
+        if (savedStill) {
+          const arrays = [px, py, pz, vx, vy, vz, fa];
+          arrays.forEach((a, i) => a.set(savedStill![i]));
+          savedStill = null;
+        }
+        finishEgg();
+        render(0);
+      }, 3000);
+    }
+  };
 
   const rnd = Math.random;
   const seeded = (seed: number) => (): number => {
@@ -387,12 +529,19 @@ export function startMurmuration(
     buildClouds();
     buildStars();
     updAttr();
-    setCount();
+    if (elapsed < 0) setCount();
+    else {
+      layoutGiant();
+      if (gathering()) {
+        updateTargets();
+        if (reduce) placeStillGiant();
+      }
+    }
   };
 
   /** Lift perched birds out of the reeds a few at a time. */
   const release = (dt: number): void => {
-    if (roost || reduce) return;
+    if (roost || reduce || elapsed >= 0) return;
     if (relDelay > 0) {
       relDelay -= dt;
       return;
@@ -418,9 +567,10 @@ export function startMurmuration(
   };
 
   const startle = (x: number, y: number, r0: number): void => {
+    if (elapsed >= 0) return;
     const R = r0 * U;
     for (let i = 0; i < N; i++) {
-      if (pr[i]) continue;
+      if (pr[i] || i === egg) continue;
       const iz = F / pz[i], sx = W / 2 + px[i] * iz, sy = H / 2 + py[i] * iz;
       const dx = sx - x, dy = sy - y, d = Math.hypot(dx, dy);
       if (d > R || d < 0.01) continue;
@@ -433,7 +583,7 @@ export function startMurmuration(
   };
 
   const updFalcon = (dt: number): void => {
-    if (!P.falcon || reduce || roost) {
+    if (!P.falcon || reduce || roost || elapsed >= 0) {
       fal.on = false;
       return;
     }
@@ -500,9 +650,10 @@ export function startMurmuration(
   };
 
   const step = (dt: number): void => {
-    const SEP = Math.max(4, P.spacing || 24) * U, SEP2 = SEP * SEP;
-    const NR = Math.max(SEP * 2.4, 64 * U), NR2 = NR * NR;
-    const V0 = 135 * U, VMIN = 85 * U, VMAX = 230 * U, AMAX = 1500 * U;
+    const gather = gathering();
+    const SEP = Math.max(4, P.spacing || 24) * U * (gather ? 0.5 : 1), SEP2 = SEP * SEP;
+    const NR = gather ? SEP : Math.max(SEP * 2.4, 64 * U), NR2 = NR * NR;
+    const V0 = 135 * U, VMIN = gather ? 0 : 85 * U, VMAX = 230 * U * (gather ? 2.2 : 1), AMAX = 1500 * U;
     const G = groups.length;
     for (const A of groups) {
       A.n = 0;
@@ -602,7 +753,7 @@ export function startMurmuration(
                 sepz -= ez * f;
               }
               // keep the KN nearest neighbours (insertion into a tiny sorted list)
-              if (kc < KN || d2 < kd[KN - 1]) {
+              if (!gather && (kc < KN || d2 < kd[KN - 1])) {
                 let m = kc < KN ? kc++ : KN - 1;
                 while (m > 0 && kd[m - 1] > d2) {
                   kd[m] = kd[m - 1];
@@ -616,8 +767,18 @@ export function startMurmuration(
           }
         }
       }
-      const KS = 720 * U;
+      const KS = 720 * U * (gather ? 0.35 : 1);
       let qx = sepx * KS, qy = sepy * KS, qz = sepz * KS;
+      if (gather) {
+        const j = pairs[i];
+        let dx = (targetX[j] - xi) * 3.2, dy = (targetY[j] - yi) * 3.2, dz = (F - zi) * 3.2;
+        const speed = Math.hypot(dx, dy, dz);
+        if (speed > VMAX) { const k = VMAX / speed; dx *= k; dy *= k; dz *= k; }
+        ax[i] = qx + (dx - vx[i]) * 4;
+        ay[i] = qy + (dy - vy[i]) * 4;
+        az[i] = qz + (dz - vz[i]) * 4;
+        continue;
+      }
       if (kc) {
         let mvx = 0, mvy = 0, mvz = 0, mpx = 0, mpy = 0, mpz = 0;
         for (let m = 0; m < kc; m++) {
@@ -671,7 +832,7 @@ export function startMurmuration(
       if (zi < ZMIN + 90) qz += (ZMIN + 90 - zi) * 3;
       else if (zi > ZMAX - 90) qz -= (zi - ZMAX + 90) * 3;
       // falcon
-      if (fal.on) {
+      if (fal.on && i !== egg) {
         const fx0 = xi - fal.x, fy0 = yi - fal.y, fz0 = zi - fal.z, fd2 = fx0 * fx0 + fy0 * fy0 + fz0 * fz0;
         if (fd2 < RF2) {
           const fd = Math.sqrt(fd2) + 0.01, f = 1 - fd / RF, k = (2600 * U * f) / fd;
@@ -682,7 +843,7 @@ export function startMurmuration(
         }
       }
       // the pointer acts as a predator in screen space
-      if (curOn) {
+      if (curOn && i !== egg) {
         const ux = scx - mx, uy = scy - my, ud2 = ux * ux + uy * uy;
         if (ud2 < RC2) {
           const ud = Math.sqrt(ud2) + 0.01, f = 1 - ud / RC, k = (2000 * U * f) / ud;
@@ -691,6 +852,10 @@ export function startMurmuration(
           qz += 380 * f;
           if (bo[i] < f * 0.8) bo[i] = f * 0.8;
         }
+      }
+      if (i === egg && !roost) {
+        if (zi < ZMIN + 80) qz += (ZMIN + 80 - zi) * 2;
+        else if (zi > ZMIN + 520) qz -= (zi - ZMIN - 520) * 2;
       }
       const qm = Math.hypot(qx, qy, qz);
       if (qm > AMAX) {
@@ -710,7 +875,7 @@ export function startMurmuration(
       vy[i] += ay[i] * dt;
       vz[i] += az[i] * dt;
       let sp = Math.hypot(vx[i], vy[i], vz[i]) || 1;
-      const hi = VMAX * (1 + bo[i] * 0.7);
+      const hi = VMAX * (gather ? 1 : 1 + bo[i] * 0.7);
       if (sp > hi) {
         const k = hi / sp;
         vx[i] *= k;
@@ -731,11 +896,11 @@ export function startMurmuration(
       const climb = Math.max(0, -vy[i] / sp);
       const burst = Math.sin(t * 0.9 + sd[i]) > 0.15 ? 1 : 0;
       const am = Math.hypot(ax[i], ay[i], az[i]);
-      const target = Math.min(1, 0.16 + 0.5 * burst + 0.7 * climb + am / (1400 * U) + bo[i]);
+      const target = gather ? 0.5 : Math.min(1, 0.16 + 0.5 * burst + 0.7 * climb + am / (1400 * U) + bo[i]);
       fa[i] += (target - fa[i]) * Math.min(1, dt * 5);
       ph[i] += dt * 6.283 * fr[i] * (0.3 + 0.7 * fa[i]) * (1 + bo[i] * 0.6);
       bo[i] *= Math.exp(-dt * 1.6);
-      if (roost) {
+      if (roost && !gather) {
         const iz = F / pz[i], scy = H / 2 + py[i] * iz;
         if (scy > H - RH * 0.38 && vy[i] > 0) {
           pr[i] = 1;
@@ -745,7 +910,7 @@ export function startMurmuration(
     }
 
     // birds occasionally swap flocks, which makes flocks split and merge
-    if (G > 1 && rnd() < dt * 0.12) {
+    if (!gather && G > 1 && rnd() < dt * 0.12) {
       const k = Math.max(1, Math.round(na * 0.03));
       for (let m = 0; m < k; m++) {
         const i = act[(rnd() * na) | 0];
@@ -875,13 +1040,17 @@ export function startMurmuration(
     const span0 = 12 * Math.max(0.74, Math.min(1.1, W / 1200));
     const frontOn = win.scrollY < Math.min(H, 1000) * 0.55;
     let cnt = 0;
+    eggVisible = false;
     for (let i = 0; i < N; i++) {
       if (pr[i]) continue;
       const iz = F / pz[i], sx = W / 2 + px[i] * iz, sy = H / 2 + py[i] * iz;
       if (sx < -30 || sx > W + 30 || sy < -30 || sy > H + 30) continue;
       SX[cnt] = sx;
       SY[cnt] = sy;
-      SL[cnt] = span0 * iz * sz[i];
+      SL[cnt] = span0 * iz * sz[i] * (i === egg && elapsed < 0 && cooldown <= 0 ? 1.9 : 1);
+      if (i === egg && sx >= 0 && sx <= W && sy >= 0 && sy < H - RH) {
+        eggX = sx; eggY = sy; eggSpan = SL[cnt]; eggVisible = true;
+      }
       basis(BF, cnt * 6, vx[i], vy[i], vz[i], ax[i], ay[i], az[i], sx, sy);
       BK[cnt] = Math.max(0, Math.min(NB - 1, (((pz[i] - ZMIN) / (ZMAX - ZMIN)) * NB) | 0));
       FR[cnt] = frontOn && pz[i] < ZFRONT ? 1 : 0;
@@ -916,6 +1085,7 @@ export function startMurmuration(
       c.fill();
     }
     if (reeds) bx.drawImage(reeds, 0, H - RH, W, RH);
+    hoverEgg();
   };
 
   /** Scroll position drives the time of day and the roost. Returns eased 0..1. */
@@ -924,6 +1094,7 @@ export function startMurmuration(
     const maxS = se.scrollHeight - H;
     const p = maxS > 4 ? Math.max(0, Math.min(1, win.scrollY / maxS)) : 0;
     pSm += (p - pSm) * Math.min(1, dt * 2.5);
+    if (elapsed >= 0) return pSm * pSm * (3 - 2 * pSm);
     if (!roost && maxS > 4 && p > 0.95) roost = true;
     else if (roost && p < 0.88) {
       roost = false;
@@ -940,12 +1111,22 @@ export function startMurmuration(
     last = now;
     if (dt > 0.25) dt = 1 / 60;
     dt = Math.min(dt, 1 / 30);
+    if (elapsed >= 0) {
+      const prev = elapsed;
+      elapsed += dt;
+      if (prev < 0.4 && elapsed >= 0.4) beginGather();
+      if (elapsed >= 2.2) showToast();
+      if (elapsed >= 6.2) { toast?.classList.remove("show"); finishEgg(); }
+      else if (gathering()) updateTargets();
+    } else cooldown = Math.max(0, cooldown - dt);
+    if (elapsed >= 0 && elapsed < 0.4) { dt *= 0.35; bo[egg] = 1; }
     t += dt;
     const k = readScroll(dt);
     updAttr();
     release(dt);
     updFalcon(dt);
     step(dt);
+    if (egg < 0 || egg >= N) chooseEgg();
     render(k);
     raf = win.requestAnimationFrame(frame);
   };
@@ -954,11 +1135,17 @@ export function startMurmuration(
     mx = e.clientX;
     my = e.clientY;
     mt = t;
+    hoverEgg();
   };
   const onDown = (e: PointerEvent): void => {
     mx = e.clientX;
     my = e.clientY;
     mt = t;
+    readScroll(0);
+    if (!blocked(e.target) && hitBird(e.clientX, e.clientY)) {
+      triggerEgg();
+      return;
+    }
     if (!reduce) startle(e.clientX, e.clientY, 280);
   };
   const onTouch = (e: TouchEvent): void => {
@@ -971,6 +1158,8 @@ export function startMurmuration(
   };
   const onLeave = (): void => {
     mt = -100;
+    mx = my = -1e5;
+    host?.classList.remove("egg-hover");
   };
   let rt = 0;
   const onResize = (): void => {
@@ -1006,18 +1195,24 @@ export function startMurmuration(
       updAttr();
       step(1 / 60);
     }
+    chooseEgg();
     render(0);
   } else {
-    win.addEventListener("pointermove", onMove, { passive: true });
-    win.addEventListener("pointerdown", onDown, { passive: true });
     win.addEventListener("touchmove", onTouch, { passive: true });
     doc.addEventListener("pointerleave", onLeave);
     doc.addEventListener("visibilitychange", onVis);
     start();
   }
+  win.addEventListener("pointermove", onMove, { passive: true });
+  win.addEventListener("pointerdown", onDown, { passive: true });
   win.addEventListener("resize", onResize);
 
   return {
+    eggScreen() {
+      readScroll(0);
+      return readyEgg() ? { x: eggX, y: eggY, r: Math.max(26, eggSpan * 0.8) } : null;
+    },
+    triggerEgg,
     set(next: Partial<FlockOptions>): void {
       const prev = P;
       P = { ...P, ...next };
@@ -1025,13 +1220,18 @@ export function startMurmuration(
         makeGroups();
         updAttr();
       }
-      if (P.birds !== prev.birds) setCount();
+      if (P.birds !== prev.birds && elapsed < 0) setCount();
       if (P.sky !== prev.sky) buildReeds();
       if (reduce) render(0);
     },
     stop(): void {
       halt();
       win.clearTimeout(rt);
+      win.clearTimeout(stillTimer);
+      win.clearTimeout(toastTimer);
+      win.clearTimeout(cooldownTimer);
+      host?.classList.remove("egg-hover");
+      toast?.classList.remove("show");
       win.removeEventListener("pointermove", onMove);
       win.removeEventListener("pointerdown", onDown);
       win.removeEventListener("touchmove", onTouch);
