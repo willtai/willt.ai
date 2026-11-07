@@ -490,6 +490,7 @@ a.role:focus-visible .go {
   box-shadow: 0 0 0 1px var(--rule);
   font: italic 500 1.25rem / 1.4 "Cormorant Garamond", Georgia, serif;
   text-align: center;
+  white-space: pre-line;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s ease;

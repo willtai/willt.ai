@@ -94,6 +94,20 @@ interface Falcon {
   passing: boolean;
 }
 
+const EGG_QUOTES = [
+  "The unseen path remembers your name.",
+  "Even the dark sky is learning to become dawn.",
+  "Listen for the quiet door between two thoughts.",
+  "A small wonder can turn the whole night sky.",
+  "Trust the constellation still forming above you.",
+  "What wanders may still be finding its way home.",
+  "The moon keeps no map, yet crosses every tide.",
+  "Let the mystery breathe before you name it.",
+  "Somewhere, your next beginning is gathering its wings.",
+  "The stars are old fires teaching darkness to sing.",
+  "Follow the hush; it knows where the wild things go.",
+  "You are allowed to become a stranger to your old sky.",
+];
 const DEFAULTS: FlockOptions = { sky: "dusk", birds: 0, spacing: 24, flocks: 3, falcon: true };
 
 const hex = (h: string): Vec3 => {
@@ -201,6 +215,8 @@ export function startMurmuration(
   const toast = doc.getElementById("egg-toast");
   let egg = -1, eggX = 0, eggY = 0, eggSpan = 0, eggVisible = false;
   let elapsed = -1, cooldown = 0, toastShown = false;
+  let quoteOrder: number[] = [];
+  let quoteIndex = 0;
   let anchorX = 0.5, anchorY = 0.35, centreX = 0, centreY = 0, giantSpan = 1;
   let samples: BirdSample[] = [];
   let pairs: Int32Array = new Int32Array(0);
@@ -262,7 +278,15 @@ export function startMurmuration(
     if (toastShown) return;
     toastShown = true;
     if (toast) {
-      toast.textContent = "You found the odd one out.";
+      if (quoteIndex >= quoteOrder.length) {
+        quoteOrder = EGG_QUOTES.map((_, i) => i);
+        for (let i = quoteOrder.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0;
+          [quoteOrder[i], quoteOrder[j]] = [quoteOrder[j], quoteOrder[i]];
+        }
+        quoteIndex = 0;
+      }
+      toast.textContent = `You found the odd one out.\n${EGG_QUOTES[quoteOrder[quoteIndex++]]}`;
       toast.classList.add("show");
     }
     // Animated mode uses the simulation clock, including visibility pauses.
