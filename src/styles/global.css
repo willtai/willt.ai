@@ -27,6 +27,7 @@ body {
 }
 
 .wt {
+  touch-action: manipulation;
   --ink: #1c1826;
   --soft: #463c4f;
   --paper: rgba(251, 242, 234, 0.8);
@@ -467,4 +468,33 @@ a.role:focus-visible .go {
   html {
     scroll-behavior: auto;
   }
+}
+
+/* A quiet discovery; no hint is visible before the bird is found. */
+.wt.egg-hover { cursor: pointer; }
+.egg-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--reed) + 24px);
+  z-index: 7;
+  margin: 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--paper);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 1px var(--rule);
+  font: italic 500 1.25rem / 1.4 "Cormorant Garamond", Georgia, serif;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.egg-toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .egg-toast { transition: none; }
 }
