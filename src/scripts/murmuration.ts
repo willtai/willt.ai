@@ -286,7 +286,7 @@ export function startMurmuration(
         }
         quoteIndex = 0;
       }
-      toast.textContent = `You found the odd one out.\n${EGG_QUOTES[quoteOrder[quoteIndex++]]}`;
+      toast.textContent = EGG_QUOTES[quoteOrder[quoteIndex++]];
       toast.classList.add("show");
     }
     // Animated mode uses the simulation clock, including visibility pauses.
